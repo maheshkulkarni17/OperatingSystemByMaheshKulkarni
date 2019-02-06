@@ -1,0 +1,191 @@
+import java.util.*;
+import java.io.*;
+
+public class OSPhase1Program {
+
+    char memory_arr[][] = new char[100][4];
+    char Instru_Reg[] = new char[4];
+    char R[] = new char[4];
+    int Instru_Counter, SI;
+    static boolean C = true;
+    static String content_buffer;
+    int op = 0;
+    static BufferedReader br = null;
+    static FileOutputStream fos = null;
+
+    public static void main(String[] args) throws Exception {
+        OSPhase1Program obj = new OSPhase1Program();
+        br = new BufferedReader(new FileReader("D:/OSPHASE_2.txt"));
+        fos = new FileOutputStream("D:/Output.txt");
+        content_buffer=br.readLine();
+        while(content_buffer!=null){
+             obj.function1();
+         }
+    }
+
+    public void function1() throws Exception {
+        try {           
+            int i, j;
+            for (i = 0; i < 100; i++) {
+                for (j = 0; j < 4; j++) {
+                    memory_arr[i][j] = ' ';
+                }
+            }
+            int addr = -1;
+            if (content_buffer.startsWith("$AMJ")) {
+                while (!content_buffer.startsWith("$DTA")) {
+                    content_buffer = br.readLine();
+                    for (i = 0; i < content_buffer.length(); i++) {
+                        if (i % 4 == 0) {
+                            addr++;
+                        }
+                        memory_arr[addr][i % 4] = content_buffer.charAt(i);
+                    }
+                    if (i < 40) {
+                        while (i < 40) {
+                            if (i % 4 == 0) {
+                                addr++;
+                            }
+                            memory_arr[addr][i % 4] = ' ';
+                            i++;
+                        }
+                    }
+                }
+                if (content_buffer.startsWith("$DTA")) {
+                    ExecuteUserProgram();
+                    
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void ExecuteUserProgram() throws Exception {
+        Instru_Counter = 0;
+        SI = 3;
+        int k = 0;
+        String instru;
+        for (int i = 0; i < 100; i++) {
+            for (int j = 0; j < 4; j++) {
+                Instru_Reg[j] = memory_arr[i][j];
+            }
+            Instru_Counter++;
+            instru = new String(Character.toString(Instru_Reg[0]) + Character.toString(Instru_Reg[1]));
+            switch (instru) {
+                case "PD":
+                    SI = 2;
+                    op = Integer.parseInt(Character.toString(Instru_Reg[2]) + Character.toString(Instru_Reg[3]));
+                    MasterMode();
+                    break;
+                case "GD":
+                    SI = 1;
+                     op = Integer.parseInt(Character.toString(Instru_Reg[2]) + Character.toString(Instru_Reg[3]));
+                    MasterMode();
+                    break;
+                case "LR":
+                     op = Integer.parseInt(Character.toString(Instru_Reg[2]) + Character.toString(Instru_Reg[3]));
+                    for (k = 0; k < 4; k++) {
+                        R[k] = memory_arr[op][k];
+                    }
+                    break;
+                case "SR":
+                     op = Integer.parseInt(Character.toString(Instru_Reg[2]) + Character.toString(Instru_Reg[3]));
+                    for (k = 0; k < 4; k++) {
+                        memory_arr[op][k] = R[k];
+                    }
+                    break;
+                case "CR":
+                     op = Integer.parseInt(Character.toString(Instru_Reg[2]) + Character.toString(Instru_Reg[3]));
+                    for (k = 0; k < 4; k++) {
+                        if (memory_arr[op][k] != R[k]) {
+                            C = false;
+                        }
+                    }
+                    break;
+                case "BT":
+                     op = Integer.parseInt(Character.toString(Instru_Reg[2]) + Character.toString(Instru_Reg[3]));
+                    if (C == true) {
+                        i = op;
+                        continue;
+                    }
+                    break;
+                case "H ":
+                    SI = 3;
+                    op = 0;
+                    MasterMode();
+                    return;
+
+            }
+        }
+    }
+
+    public void MasterMode() throws Exception {
+        switch (SI) {
+            case 1:
+                read();
+                break;
+            case 2:
+                write();
+                break;
+            case 3:
+                terminate();
+                break;
+        }
+    }
+
+    public void read() throws Exception {
+        int i = 0;
+        for (i = 0; i < 4; i++) {
+            Instru_Reg[i] = 0;
+        }
+        content_buffer = br.readLine();
+        if (content_buffer.startsWith("$END")) {
+            System.out.println("Program does not have any body");
+            return;
+        }
+        for (i = 0; i < content_buffer.length(); i++) {
+            if (i % 4 == 0 && i != 0) {
+                op++;
+            }
+            
+            memory_arr[op][i % 4] = content_buffer.charAt(i);
+        }
+        for (; i < 40; i++) {
+            if (i % 4 == 0 && i != 0) {
+                op++;
+            }
+            memory_arr[op][i % 4] = ' ';
+        }
+    }
+
+    public void write() throws Exception {
+        int i = 0;
+        for (i = 0; i < 4; i++) {
+            Instru_Reg[i] = 0;
+        }
+        for (i = 0; i < 40; i++) {
+            if (i % 4 == 0 && i != 0) {
+                op++;
+            }
+            fos.write(memory_arr[op][i % 4]);
+        }
+        for (; i < 40; i++) {
+            if (i % 4 == 0 && i != 0) {
+                op++;
+            }
+            memory_arr[op][i % 4] = ' ';
+        }
+        fos.write('\n');
+    }
+
+    public void terminate() throws Exception {
+
+        System.out.println("terminated");
+        content_buffer = br.readLine();
+        content_buffer = br.readLine();
+        fos.write('\n');
+        fos.write('\n');
+    }
+}
